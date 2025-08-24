@@ -8,7 +8,6 @@ const bcrypt = require("bcrypt")
 const saltRounds = 5
 const password = "admin"
 
-
 // Creating an instance of the Express application
 const app = express();
 
@@ -34,13 +33,16 @@ app.post('/api/login', async (req, res) => {
     console.log(data);
     let user_name = data['user_name'];
     let password = data['password'];
-
     // Querying the MongoDB 'customers' collection for matching user_name and password
-    const documents = await Customers.find({ user_name: user_name, password: password });
-
+    const documents = await Customers.find({ user_name: user_name });
     // If a matching user is found, set the session username and serve the home page
     if (documents.length > 0) {
-        res.send("User Logged In");
+        let result = await bcrypt.compare(password, documents[0]['password'])
+        if(true) {
+            res.send("User Logged In");
+        } else {
+            res.send("Password Incorrect! Try again");
+        }
     } else {
         res.send("User Information incorrect");
     }
@@ -49,20 +51,14 @@ app.post('/api/login', async (req, res) => {
 // POST endpoint for adding a new customer
 app.post('/api/add_customer', async (req, res) => {
     const data = req.body;
-    console.log(data)
+
     const documents = await Customers.find({ user_name: data['user_name']});
     if (documents.length > 0) {
         res.send("User already exists");
     }
-    
-// POST endpoint for adding a new customer
-app.post('/api/add_customer', async (req, res) => {
-    const data = req.body;
-    const documents = await Customers.find({ user_name: data['user_name']});
-    if (documents.length > 0) {
-        res.send("User already exists");
-    }
+
     let hashedpwd = bcrypt.hashSync(data['password'], saltRounds)
+    
     // Creating a new instance of the Customers model with data from the request
     const customer = new Customers({
         "user_name": data['user_name'],
@@ -70,8 +66,10 @@ app.post('/api/add_customer', async (req, res) => {
         "password": hashedpwd,
         "email": data['email']
     });
+
     // Saving the new customer to the MongoDB 'customers' collection
     await customer.save();
+
     res.send("Customer added successfully")
 });
 

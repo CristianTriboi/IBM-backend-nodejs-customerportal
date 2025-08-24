@@ -4,6 +4,10 @@ const Customers = require('./customer');         // Imported MongoDB model for '
 const express = require('express');              // Express.js web framework
 const bodyParser = require('body-parser');       // Middleware for parsing JSON requests
 const path = require('path');                    // Node.js path module for working with file and directory paths
+const bcrypt = require("bcrypt")
+const saltRounds = 5
+const password = "admin"
+
 
 // Creating an instance of the Express application
 const app = express();
@@ -12,7 +16,7 @@ const app = express();
 const port = 3000;
 
 // MongoDB connection URI and database name
-const uri =  "mongodb://root:your_password@localhost:27017";
+const uri =  "mongodb://root:TC7RfCzcKbeUmLJsmQ9mAZ0g@172.21.241.13:27017";
 mongoose.connect(uri, {'dbName': 'customerDB'});
 
 // Middleware to parse JSON requests
@@ -51,17 +55,23 @@ app.post('/api/add_customer', async (req, res) => {
         res.send("User already exists");
     }
     
+// POST endpoint for adding a new customer
+app.post('/api/add_customer', async (req, res) => {
+    const data = req.body;
+    const documents = await Customers.find({ user_name: data['user_name']});
+    if (documents.length > 0) {
+        res.send("User already exists");
+    }
+    let hashedpwd = bcrypt.hashSync(data['password'], saltRounds)
     // Creating a new instance of the Customers model with data from the request
     const customer = new Customers({
         "user_name": data['user_name'],
         "age": data['age'],
-        "password": data['password'],
+        "password": hashedpwd,
         "email": data['email']
     });
-
     // Saving the new customer to the MongoDB 'customers' collection
     await customer.save();
-
     res.send("Customer added successfully")
 });
 

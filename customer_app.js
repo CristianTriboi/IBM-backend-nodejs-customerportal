@@ -7,6 +7,7 @@ const path = require('path');                    // Node.js path module for work
 const bcrypt = require("bcrypt")
 const saltRounds = 5
 const password = "admin"
+const session = require('express-session');
 
 // Creating an instance of the Express application
 const app = express();
@@ -17,6 +18,15 @@ const port = 3000;
 // MongoDB connection URI and database name
 const uri =  "mongodb://root:TC7RfCzcKbeUmLJsmQ9mAZ0g@172.21.241.13:27017";
 mongoose.connect(uri, {'dbName': 'customerDB'});
+
+const uuid = require('uuid'); //to generate a unique session id
+app.use(session({
+      cookie: { maxAge: 120000 }, // Session expires after 2 minutes of inactivity
+    secret: 'itsmysecret',
+    res: false,
+    saveUninitialized: true,
+    genid: () => uuid.v4()
+}));
 
 // Middleware to parse JSON requests
 app.use("*", bodyParser.json());
@@ -39,13 +49,27 @@ app.post('/api/login', async (req, res) => {
     if (documents.length > 0) {
         let result = await bcrypt.compare(password, documents[0]['password'])
         if(true) {
-            res.send("User Logged In");
+            const genidValue = req.sessionID;
+            res.cookie('username', user_name);
+            res.sendFile(path.join(__dirname, 'frontend', 'home.html'));
         } else {
             res.send("Password Incorrect! Try again");
         }
     } else {
         res.send("User Information incorrect");
     }
+});
+
+// GET endpoint for user logout
+app.get('/api/logout', async (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+          console.error(err);
+        } else {
+          res.cookie('username', '', { expires: new Date(0) });
+          res.redirect('/');
+        }
+      });
 });
 
 // POST endpoint for adding a new customer

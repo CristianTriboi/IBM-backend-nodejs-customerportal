@@ -37,6 +37,25 @@ app.use('/static', express.static(path.join(".", 'frontend')));
 // Middleware to handle URL-encoded form data
 app.use(bodyParser.urlencoded({ extended: true }));
 
+//Add the global error handling
+app.use((err,req,res,next) => {
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || "Error";
+    console.log(err.stack);
+    res.status(err.statusCode).json({
+        status: err.statusCode,
+        message: err.message,
+    });
+})
+
+//Middleware to handle all the invalid requests
+app.all("*",(req,res,next)=>{
+    const err = new Error(`Cannot find the URL ${req.originalUrl} in this application. Please check.`);
+    err.status = "Endpoint Failure";
+    err.statusCode = 404;
+    next(err);
+})
+
 // POST endpoint for user login
 app.post('/api/login', async (req, res) => {
     const data = req.body;
